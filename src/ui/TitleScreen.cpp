@@ -16,8 +16,9 @@ TitleAction DrawTitleScreen(bool hasSave) {
         DrawCircleV({x * ui::Scale(), y * ui::Scale()}, (8.0F + static_cast<float>(i % 4) * 4.0F) * ui::Scale(),
                     ColorAlpha(palette::LeafLight, 0.35F));
     }
-    ui::Text("POTLUCK", 438, 95, 86, palette::Cream);
-    ui::Text("Grow a legacy from soil to skyline", 418, 190, 24, palette::Gold);
+    ui::CenteredText("POTLUCK", ui::Rect(0, 95, 1280, 86), 86, palette::Cream);
+    ui::CenteredText("Grow a legacy from soil to skyline", ui::Rect(0, 190, 1280, 24),
+                     24, palette::Gold);
     ui::Panel(ui::Rect(440, 270, 400, 285), Color{24, 43, 35, 235});
 
     if (ui::Button(ui::Rect(490, 310, 300, 56), "NEW FARM") || IsKeyPressed(KEY_N)) {
@@ -30,7 +31,8 @@ TitleAction DrawTitleScreen(bool hasSave) {
     if (ui::Button(ui::Rect(490, 462, 300, 56), "QUIT") || IsKeyPressed(KEY_ESCAPE)) {
         return TitleAction::Quit;
     }
-    ui::Text("Procedural low-poly art - no external assets", 426, 610, 18, ColorAlpha(palette::Cream, 0.72F));
+    ui::CenteredText("Procedural low-poly art - no external assets", ui::Rect(0, 610, 1280, 18),
+                     18, ColorAlpha(palette::Cream, 0.72F));
     return TitleAction::None;
 }
 
