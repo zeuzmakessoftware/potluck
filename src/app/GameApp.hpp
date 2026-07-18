@@ -3,6 +3,8 @@
 #include "camera/ThirdPersonCamera.hpp"
 #include "domain/GameSession.hpp"
 #include "input/GameInput.hpp"
+#include "preferences/AppPreferences.hpp"
+#include "preferences/PreferencesService.hpp"
 #include "save/SaveService.hpp"
 #include "world/FarmLayout.hpp"
 #include "world/HydroLayout.hpp"
@@ -16,6 +18,7 @@ enum class AppScreen {
     OriginIntro,
     Playing,
     Pause,
+    Settings,
     Shop,
     Shipping,
     Inventory,
@@ -45,11 +48,15 @@ private:
     void ConfigureLoadedEnvironment();
     void ResetTransientTargets();
     void EndCurrentDay();
+    void LoadPreferences();
+    void PersistPreferences();
     void SetScreen(AppScreen screen);
     void ShowMessage(std::string message);
 
     GameSession session_ = GameSession::NewGame();
     SaveService saves_;
+    AppPreferences preferences_;
+    PreferencesService preferencesService_;
     ThirdPersonCamera camera_;
     AppScreen screen_ = AppScreen::Title;
     FarmInteractionKind farmInteraction_ = FarmInteractionKind::None;
@@ -63,9 +70,11 @@ private:
     bool moving_ = false;
     bool hydroValidationAttempted_ = false;
     bool screenInputBlocked_ = false;
+    float screenInputBlockTime_ = 0.0F;
     float animationTime_ = 0.0F;
     float toastTime_ = 0.0F;
     std::string toast_;
+    std::string settingsError_;
     std::string dialogueSpeaker_;
     std::string dialogueText_;
 };

@@ -57,6 +57,7 @@ ctest --preset release
 | `Shift` | Sprint | Sprint |
 | Mouse or arrow keys | Orbit camera | Orbit camera |
 | Mouse wheel | Zoom | Zoom |
+| Pause → Settings | Camera direction and turn speed | Camera direction and turn speed |
 | `Tab` | Capture/release mouse | Capture/release mouse |
 | `1`–`4` | Select tool | Select reservoir, pump, channel, or light |
 | `Z / X` | Cycle cultivar | — |
@@ -91,6 +92,16 @@ The game autosaves after each outdoor day and supports quick save/load. Potluck 
 
 A backup save is maintained beside the primary file. Potluck uses a clean, versioned save identity and intentionally does not migrate old Ultradope prototype saves. The codec validates progression, environment, quest, and hydroponics invariants before replacing the live session.
 
+## Settings
+
+Pause the game and open **Settings** to change horizontal camera direction or camera turn speed. The default camera direction is the conventional view-turn direction; enabling **Invert Camera** restores the original orbit direction. These controls apply to both mouse movement and the left/right arrow keys.
+
+Settings are global, save automatically, and remain independent of gameplay saves. They are stored at:
+
+```text
+~/Library/Application Support/Potluck/preferences.cfg
+```
+
 ## Architecture
 
 - `src/domain`: raylib-free game state, progression, and hydroponics rules
@@ -98,7 +109,8 @@ A backup save is maintained beside the primary file. Potluck uses a clean, versi
 - `src/world`: outdoor and hydro layout, targeting, interactions, and collision
 - `src/render`: procedural 3D drawing for both environments
 - `src/ui`: title, origin, environment-specific HUDs, dialogue, and milestone screens
-- `src/save`: versioned codec and filesystem service
+- `src/preferences`: global camera preferences, versioned codec, and filesystem service
+- `src/save`: versioned gameplay codec and filesystem service
 - `src/app`: application lifecycle, environment dispatch, and orchestration
 - `tests`: dependency-free tests for pure systems and persistence
 

@@ -1,13 +1,24 @@
 #pragma once
 
 #include "domain/GameSession.hpp"
+#include "preferences/AppPreferences.hpp"
 
 namespace ultradope {
 
-enum class PauseAction { None, Resume, Save, Load, Title };
+enum class PauseAction { None, Resume, Save, Load, Settings, Title };
+enum class SettingsAction {
+    None,
+    ToggleCameraInversion,
+    DecreaseCameraSensitivity,
+    IncreaseCameraSensitivity,
+    ResetDefaults,
+    Back
+};
 enum class HydroUnlockAction { None, EnterWorkshop, StayOnFarm };
 
 PauseAction DrawPauseScreen();
+SettingsAction DrawSettingsScreen(const AppPreferences& preferences,
+                                  const char* persistenceError);
 CropType DrawShopScreen(const GameSession& session);
 CropType DrawShippingScreen(const GameSession& session);
 bool DrawInventoryScreen(const GameSession& session);

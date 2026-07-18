@@ -22,6 +22,8 @@ add_library(potluck_core STATIC
     src/systems/EconomySystem.cpp
     src/systems/QuestSystem.cpp
     src/systems/HydroponicsSystem.cpp
+    src/preferences/PreferencesCodec.cpp
+    src/preferences/PreferencesService.cpp
     src/save/SaveCodec.cpp
 )
 target_include_directories(potluck_core PUBLIC src)

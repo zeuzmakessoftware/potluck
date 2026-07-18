@@ -16,12 +16,6 @@ void InstallValidHydroBuild(HydroState& hydro) {
     PlaceHydroEquipment(hydro, HydroSocket::CenterLight, HydroEquipment::GrowLight);
 }
 
-std::string ReplaceOnce(std::string text, const std::string& from, const std::string& to) {
-    const std::size_t position = text.find(from);
-    Expect(position != std::string::npos, "save fixture contains replacement text");
-    text.replace(position, from.size(), to);
-    return text;
-}
 }  // namespace
 
 void RunSaveCodecTests() {

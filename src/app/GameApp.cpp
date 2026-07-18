@@ -68,6 +68,7 @@ HydroEquipment EquipmentForSelection(int selection) {
 int GameApp::Run() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
     InitWindow(1280, 720, "Potluck - Grow a Legacy");
+    LoadPreferences();
     if (!ui::LoadGameFont()) {
         TraceLog(LOG_WARNING, "Could not load bundled Old English font; using raylib default.");
     }
@@ -123,7 +124,8 @@ void GameApp::CompleteOrigin() {
 }
 
 void GameApp::Update(float deltaTime) {
-    screenInputBlocked_ = false;
+    screenInputBlockTime_ = std::max(0.0F, screenInputBlockTime_ - deltaTime);
+    screenInputBlocked_ = screenInputBlockTime_ > 0.0F;
     animationTime_ += deltaTime;
     toastTime_ = std::max(0.0F, toastTime_ - deltaTime);
     if (screen_ == AppScreen::Playing) UpdateGameplay(deltaTime);
@@ -171,8 +173,9 @@ void GameApp::UpdateGameplay(float deltaTime) {
         }
         session_.player.facingRadians = std::atan2(movement.x, movement.y);
     }
-    camera_.Update(session_.player, input.cameraRotationRate, input.cameraRotationDelta,
-                   input.zoom, deltaTime);
+    const float cameraRotationScale = preferences_.CameraRotationScale();
+    camera_.Update(session_.player, input.cameraRotationRate * cameraRotationScale,
+                   input.cameraRotationDelta * cameraRotationScale, input.zoom, deltaTime);
 
     if (session_.progression.environment == EnvironmentId::HydroLab) {
         UpdateHydroGameplay(input, deltaTime);
@@ -338,9 +341,28 @@ void GameApp::EndCurrentDay() {
     SetScreen(AppScreen::DaySummary);
 }
 
+void GameApp::LoadPreferences() {
+    std::string message;
+    if (!preferencesService_.Load(preferences_, message)) {
+        settingsError_ = "Preferences could not be loaded; defaults are active.";
+        TraceLog(LOG_WARNING, "Could not load preferences: %s", message.c_str());
+    }
+}
+
+void GameApp::PersistPreferences() {
+    std::string message;
+    if (preferencesService_.Save(preferences_, message)) {
+        settingsError_.clear();
+    } else {
+        settingsError_ = "Applied now, but preferences could not be saved.";
+        TraceLog(LOG_WARNING, "Could not save preferences: %s", message.c_str());
+    }
+}
+
 void GameApp::SetScreen(AppScreen screen) {
     screen_ = screen;
     screenInputBlocked_ = true;
+    screenInputBlockTime_ = 0.2F;
     const bool gameplay = screen == AppScreen::Playing;
     mouseCaptured_ = gameplay;
     if (gameplay) DisableCursor(); else EnableCursor();
@@ -402,7 +424,38 @@ void GameApp::Draw() {
                 if (saves_.Load(session_, message)) ConfigureLoadedEnvironment();
                 ShowMessage(std::move(message));
             }
+            if (action == PauseAction::Settings) SetScreen(AppScreen::Settings);
             if (action == PauseAction::Title) SetScreen(AppScreen::Title);
+            break;
+        }
+        case AppScreen::Settings: {
+            const SettingsAction action =
+                DrawSettingsScreen(preferences_, settingsError_.c_str());
+            if (screenInputBlocked_) break;
+
+            bool preferencesChanged = false;
+            switch (action) {
+                case SettingsAction::ToggleCameraInversion:
+                    preferences_.invertHorizontalCamera = !preferences_.invertHorizontalCamera;
+                    preferencesChanged = true;
+                    break;
+                case SettingsAction::DecreaseCameraSensitivity:
+                    preferencesChanged = preferences_.DecreaseCameraSensitivity();
+                    break;
+                case SettingsAction::IncreaseCameraSensitivity:
+                    preferencesChanged = preferences_.IncreaseCameraSensitivity();
+                    break;
+                case SettingsAction::ResetDefaults:
+                    preferences_ = AppPreferences{};
+                    preferencesChanged = true;
+                    break;
+                case SettingsAction::Back:
+                    SetScreen(AppScreen::Pause);
+                    break;
+                case SettingsAction::None:
+                    break;
+            }
+            if (preferencesChanged) PersistPreferences();
             break;
         }
         case AppScreen::Shop: {

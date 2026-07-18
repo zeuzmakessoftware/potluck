@@ -5,6 +5,7 @@ add_executable(potluck_tests
     HydroponicsTests.cpp
     ProgressionTests.cpp
     SaveCodecTests.cpp
+    PreferencesTests.cpp
 )
 target_link_libraries(potluck_tests PRIVATE potluck_core)
 target_include_directories(potluck_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/src)

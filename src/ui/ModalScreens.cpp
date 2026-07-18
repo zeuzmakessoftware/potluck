@@ -26,13 +26,68 @@ bool SeedButton(const GameSession& session, CropType crop, float y, bool unlocke
 
 PauseAction DrawPauseScreen() {
     ModalTitle("PAUSED");
-    if (ui::Button(ui::Rect(440, 210, 400, 55), "RESUME") || IsKeyPressed(KEY_ESCAPE)) return PauseAction::Resume;
-    if (ui::Button(ui::Rect(440, 285, 400, 55), "SAVE GAME")) return PauseAction::Save;
-    if (ui::Button(ui::Rect(440, 360, 400, 55), "LOAD GAME")) return PauseAction::Load;
-    if (ui::Button(ui::Rect(440, 435, 400, 55), "TITLE SCREEN")) return PauseAction::Title;
-    ui::Text("WASD move  arrows or mouse rotate  Wheel zoom", 395, 545, 17, palette::Cream);
-    ui::Text("1-4 select  F use/place  E interact  R remove/refill", 365, 575, 17, palette::Cream);
+    if (ui::Button(ui::Rect(440, 185, 400, 48), "RESUME") || IsKeyPressed(KEY_ESCAPE)) {
+        return PauseAction::Resume;
+    }
+    if (ui::Button(ui::Rect(440, 245, 400, 48), "SAVE GAME")) return PauseAction::Save;
+    if (ui::Button(ui::Rect(440, 305, 400, 48), "LOAD GAME")) return PauseAction::Load;
+    if (ui::Button(ui::Rect(440, 365, 400, 48), "SETTINGS") || IsKeyPressed(KEY_S)) {
+        return PauseAction::Settings;
+    }
+    if (ui::Button(ui::Rect(440, 425, 400, 48), "TITLE SCREEN")) return PauseAction::Title;
+    ui::Text("WASD move  arrows or mouse rotate  Wheel zoom", 395, 520, 17, palette::Cream);
+    ui::Text("1-4 select  F use/place  E interact  R remove/refill", 365, 552, 17, palette::Cream);
     return PauseAction::None;
+}
+
+SettingsAction DrawSettingsScreen(const AppPreferences& preferences,
+                                  const char* persistenceError) {
+    ModalTitle("SETTINGS");
+    ui::CenteredText("CAMERA CONTROLS", ui::Rect(390, 175, 500, 35), 22, palette::Gold);
+
+    ui::Text("INVERT CAMERA", 440, 225, 19, palette::Cream);
+    const char* inversionLabel = preferences.invertHorizontalCamera ? "ON" : "OFF";
+    if (ui::Button(ui::Rect(650, 212, 190, 48), inversionLabel) || IsKeyPressed(KEY_I)) {
+        return SettingsAction::ToggleCameraInversion;
+    }
+    ui::CenteredText("Affects horizontal mouse and arrow-key orbit.",
+                     ui::Rect(350, 270, 580, 32), 16, ColorAlpha(palette::Cream, 0.78F));
+
+    ui::Text("CAMERA SPEED", 440, 335, 19, palette::Cream);
+    char sensitivity[32];
+    std::snprintf(sensitivity, sizeof(sensitivity), "%d%%",
+                  static_cast<int>(preferences.cameraSensitivity * 100.0F + 0.5F));
+    const bool canDecrease = preferences.CanDecreaseCameraSensitivity();
+    const bool canIncrease = preferences.CanIncreaseCameraSensitivity();
+    const bool decreaseClicked =
+        ui::Button(ui::Rect(420, 375, 90, 50), "-", canDecrease);
+    if (canDecrease && (decreaseClicked || IsKeyPressed(KEY_LEFT))) {
+        return SettingsAction::DecreaseCameraSensitivity;
+    }
+    ui::CenteredText(sensitivity, ui::Rect(520, 375, 240, 50), 25, palette::Gold);
+    const bool increaseClicked =
+        ui::Button(ui::Rect(770, 375, 90, 50), "+", canIncrease);
+    if (canIncrease && (increaseClicked || IsKeyPressed(KEY_RIGHT))) {
+        return SettingsAction::IncreaseCameraSensitivity;
+    }
+
+    if (ui::Button(ui::Rect(350, 475, 270, 50), "RESET DEFAULTS") || IsKeyPressed(KEY_R)) {
+        return SettingsAction::ResetDefaults;
+    }
+    if (ui::Button(ui::Rect(660, 475, 270, 50), "BACK") || IsKeyPressed(KEY_ESCAPE)) {
+        return SettingsAction::Back;
+    }
+
+    ui::CenteredText("I invert  Left/Right speed  R reset  Esc back",
+                     ui::Rect(350, 535, 580, 25), 14, ColorAlpha(palette::Cream, 0.68F));
+    if (persistenceError != nullptr && persistenceError[0] != '\0') {
+        ui::CenteredText(persistenceError, ui::Rect(330, 570, 620, 25), 14,
+                         Color{235, 145, 120, 255});
+    } else {
+        ui::CenteredText("Changes save automatically.", ui::Rect(390, 570, 500, 25), 15,
+                         ColorAlpha(palette::Cream, 0.72F));
+    }
+    return SettingsAction::None;
 }
 
 CropType DrawShopScreen(const GameSession& session) {
