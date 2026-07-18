@@ -6,6 +6,23 @@ The long-term direction is a grow-to-empire journey through cultivation technolo
 
 Potluck uses procedural low-poly geometry and raylib's built-in font. It requires no external art, model, audio, shader, or data assets.
 
+## Quick start
+
+Build and launch the debug game with one command:
+
+```sh
+make
+```
+
+Other useful shortcuts:
+
+```sh
+make build        # Build without launching
+make test         # Build and run tests
+make release-run  # Build and launch the release version
+make help         # List all shortcuts
+```
+
 ## Build
 
 Requirements:
