@@ -1,0 +1,33 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Potluck Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "POTLUCK_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Potluck Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "POTLUCK_BUILD_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "release", "configurePreset": "release" }
+  ],
+  "testPresets": [
+    { "name": "dev", "configurePreset": "dev", "output": { "outputOnFailure": true } },
+    { "name": "release", "configurePreset": "release", "output": { "outputOnFailure": true } }
+  ]
+}
