@@ -3,8 +3,38 @@
 #include "render/Palette.hpp"
 
 #include <algorithm>
+#include <string>
 
 namespace ultradope::ui {
+namespace {
+Font gameFont{};
+bool gameFontLoaded = false;
+
+std::string BundledFontPath() {
+    return std::string(GetApplicationDirectory()) + "assets/fonts/UnifrakturCook-Bold.ttf";
+}
+}  // namespace
+
+bool LoadGameFont() {
+    if (gameFontLoaded) return true;
+    std::string path = BundledFontPath();
+    if (!FileExists(path.c_str())) path = "assets/fonts/UnifrakturCook-Bold.ttf";
+    if (!FileExists(path.c_str())) return false;
+
+    gameFont = LoadFontEx(path.c_str(), 96, nullptr, 0);
+    gameFontLoaded = IsFontValid(gameFont);
+    if (gameFontLoaded) SetTextureFilter(gameFont.texture, TEXTURE_FILTER_BILINEAR);
+    return gameFontLoaded;
+}
+
+void UnloadGameFont() {
+    if (!gameFontLoaded) return;
+    UnloadFont(gameFont);
+    gameFont = {};
+    gameFontLoaded = false;
+}
+
+Font GameFont() { return gameFontLoaded ? gameFont : GetFontDefault(); }
 
 float Scale() {
     return std::max(0.75F, std::min(static_cast<float>(GetScreenWidth()) / 1280.0F,
@@ -22,13 +52,13 @@ void Panel(Rectangle bounds, Color color) {
 }
 
 void Text(const char* text, float x, float y, float size, Color color) {
-    DrawTextEx(GetFontDefault(), text, {x * Scale(), y * Scale()}, size * Scale(), 1.0F, color);
+    DrawTextEx(GameFont(), text, {x * Scale(), y * Scale()}, size * Scale(), 1.0F, color);
 }
 
 void CenteredText(const char* text, Rectangle bounds, float size, Color color) {
     const float fontSize = size * Scale();
-    const Vector2 measured = MeasureTextEx(GetFontDefault(), text, fontSize, 1.0F);
-    DrawTextEx(GetFontDefault(), text,
+    const Vector2 measured = MeasureTextEx(GameFont(), text, fontSize, 1.0F);
+    DrawTextEx(GameFont(), text,
         {bounds.x + (bounds.width - measured.x) * 0.5F,
          bounds.y + (bounds.height - measured.y) * 0.5F}, fontSize, 1.0F, color);
 }

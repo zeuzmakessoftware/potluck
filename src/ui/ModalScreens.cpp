@@ -136,7 +136,7 @@ bool DrawVerticalSliceCompleteScreen() {
                      palette::Gold);
     ui::CenteredText("The first indoor system holds steady.", ui::Rect(360, 320, 560, 40),
                      20, palette::Cream);
-    ui::CenteredText("From a hidden window plant to a controlled room—this is only the start.",
+    ui::CenteredText("From a hidden window plant to a controlled room - this is only the start.",
                      ui::Rect(300, 370, 680, 44), 18, palette::Cream);
     return ui::Button(ui::Rect(465, 500, 350, 58), "KEEP EXPLORING") ||
            IsKeyPressed(KEY_ENTER);

@@ -52,6 +52,11 @@ add_executable(potluck
 )
 target_link_libraries(potluck PRIVATE potluck_core PkgConfig::RAYLIB)
 target_include_directories(potluck PRIVATE src)
+add_custom_command(TARGET potluck POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+            "$<TARGET_FILE_DIR:potluck>/assets"
+)
 potluck_set_project_options(potluck)
 potluck_set_warnings(potluck)
 

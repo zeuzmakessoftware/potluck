@@ -11,6 +11,7 @@
 #include "ui/IntroScreen.hpp"
 #include "ui/ModalScreens.hpp"
 #include "ui/TitleScreen.hpp"
+#include "ui/UiDraw.hpp"
 
 #include <raylib.h>
 
@@ -67,6 +68,9 @@ HydroEquipment EquipmentForSelection(int selection) {
 int GameApp::Run() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
     InitWindow(1280, 720, "Potluck - Grow a Legacy");
+    if (!ui::LoadGameFont()) {
+        TraceLog(LOG_WARNING, "Could not load bundled Old English font; using raylib default.");
+    }
     SetWindowMinSize(960, 540);
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
@@ -81,6 +85,7 @@ int GameApp::Run() {
     }
 
     EnableCursor();
+    ui::UnloadGameFont();
     CloseWindow();
     return 0;
 }

@@ -4,7 +4,7 @@
 
 The long-term direction is a grow-to-empire journey through cultivation technology, genetics, legalization, products, branding, public markets, and eventually billionaire-scale strategy. This milestone focuses on proving the first outdoor-to-indoor transition.
 
-Potluck uses procedural low-poly geometry and raylib's built-in font. It requires no external art, model, audio, shader, or data assets.
+Potluck uses procedural low-poly geometry and a bundled Old English-style typeface. It requires no external art, model, audio, shader, or data downloads at runtime.
 
 ## Quick start
 
@@ -103,3 +103,7 @@ A backup save is maintained beside the primary file. Potluck uses a clean, versi
 - `tests`: dependency-free tests for pure systems and persistence
 
 The internal C++ namespace remains `ultradope` during this milestone to avoid a mechanical rename unrelated to player-facing functionality. Product text, build artifacts, documentation, and save identity use Potluck.
+
+## Font license
+
+All in-game text uses **UnifrakturCook Bold**, an Old English-style typeface distributed under the SIL Open Font License 1.1. The font and its license are stored in `assets/fonts/`.

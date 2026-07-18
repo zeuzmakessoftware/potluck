@@ -4,6 +4,9 @@
 
 namespace ultradope::ui {
 
+bool LoadGameFont();
+void UnloadGameFont();
+Font GameFont();
 float Scale();
 Rectangle Rect(float x, float y, float width, float height);
 void Panel(Rectangle bounds, Color color);
