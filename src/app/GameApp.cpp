@@ -97,6 +97,9 @@ int GameApp::Run() {
     if (!ui::LoadGameFont()) {
         TraceLog(LOG_WARNING, "Could not load bundled display font; using raylib default.");
     }
+    if (!LoadTitleScreenAssets()) {
+        TraceLog(LOG_WARNING, "Could not load title artwork; using procedural fallback.");
+    }
     SetWindowMinSize(960, 540);
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
@@ -111,6 +114,7 @@ int GameApp::Run() {
     }
 
     EnableCursor();
+    UnloadTitleScreenAssets();
     ui::UnloadGameFont();
     CloseWindow();
     return 0;
@@ -424,6 +428,10 @@ void GameApp::Draw() {
         const TitleAction action = DrawTitleScreen(saves_.HasSave());
         if (action == TitleAction::NewGame) StartNewGame();
         if (action == TitleAction::Continue) ContinueGame();
+        if (action == TitleAction::Options) {
+            settingsReturnScreen_ = AppScreen::Title;
+            SetScreen(AppScreen::Settings);
+        }
         if (action == TitleAction::Quit) running_ = false;
         return;
     }
@@ -434,7 +442,11 @@ void GameApp::Draw() {
         return;
     }
 
-    DrawGameWorld();
+    if (screen_ == AppScreen::Settings && settingsReturnScreen_ == AppScreen::Title) {
+        DrawTitleScreenBackdrop();
+    } else {
+        DrawGameWorld();
+    }
     switch (screen_) {
         case AppScreen::Playing: break;
         case AppScreen::Pause: {
@@ -451,7 +463,10 @@ void GameApp::Draw() {
                 if (saves_.Load(session_, message)) ConfigureLoadedEnvironment();
                 ShowMessage(std::move(message));
             }
-            if (action == PauseAction::Settings) SetScreen(AppScreen::Settings);
+            if (action == PauseAction::Settings) {
+                settingsReturnScreen_ = AppScreen::Pause;
+                SetScreen(AppScreen::Settings);
+            }
             if (action == PauseAction::Title) SetScreen(AppScreen::Title);
             break;
         }
@@ -477,7 +492,7 @@ void GameApp::Draw() {
                     preferencesChanged = true;
                     break;
                 case SettingsAction::Back:
-                    SetScreen(AppScreen::Pause);
+                    SetScreen(settingsReturnScreen_);
                     break;
                 case SettingsAction::None:
                     break;

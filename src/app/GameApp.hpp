@@ -59,6 +59,7 @@ private:
     PreferencesService preferencesService_;
     ThirdPersonCamera camera_;
     AppScreen screen_ = AppScreen::Title;
+    AppScreen settingsReturnScreen_ = AppScreen::Pause;
     FarmInteractionKind farmInteraction_ = FarmInteractionKind::None;
     HydroInteractionKind hydroInteraction_ = HydroInteractionKind::None;
     HydroSocket targetHydroSocket_ = HydroSocket::Count;
