@@ -11,14 +11,14 @@ Font gameFont{};
 bool gameFontLoaded = false;
 
 std::string BundledFontPath() {
-    return std::string(GetApplicationDirectory()) + "assets/fonts/UnifrakturCook-Bold.ttf";
+    return std::string(GetApplicationDirectory()) + "assets/fonts/BlackOpsOne-Regular.ttf";
 }
 }  // namespace
 
 bool LoadGameFont() {
     if (gameFontLoaded) return true;
     std::string path = BundledFontPath();
-    if (!FileExists(path.c_str())) path = "assets/fonts/UnifrakturCook-Bold.ttf";
+    if (!FileExists(path.c_str())) path = "assets/fonts/BlackOpsOne-Regular.ttf";
     if (!FileExists(path.c_str())) return false;
 
     gameFont = LoadFontEx(path.c_str(), 96, nullptr, 0);

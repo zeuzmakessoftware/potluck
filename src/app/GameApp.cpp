@@ -95,7 +95,7 @@ int GameApp::Run() {
     InitWindow(1280, 720, "Potluck - Grow a Legacy");
     LoadPreferences();
     if (!ui::LoadGameFont()) {
-        TraceLog(LOG_WARNING, "Could not load bundled Old English font; using raylib default.");
+        TraceLog(LOG_WARNING, "Could not load bundled display font; using raylib default.");
     }
     SetWindowMinSize(960, 540);
     SetExitKey(KEY_NULL);

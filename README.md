@@ -4,7 +4,7 @@
 
 The long-term direction is a grow-to-empire journey through cultivation technology, genetics, legalization, products, branding, public markets, and eventually billionaire-scale strategy. This milestone focuses on proving the first outdoor-to-indoor transition.
 
-Potluck uses procedural low-poly geometry and a bundled Old English-style typeface. It requires no external art, model, audio, shader, or data downloads at runtime.
+Potluck uses procedural low-poly geometry and a bundled bold stencil-style typeface. It requires no external art, model, audio, shader, or data downloads at runtime.
 
 ## Quick start
 
@@ -118,4 +118,4 @@ The internal C++ namespace remains `ultradope` during this milestone to avoid a 
 
 ## Font license
 
-All in-game text uses **UnifrakturCook Bold**, an Old English-style typeface distributed under the SIL Open Font License 1.1. The font and its license are stored in `assets/fonts/`.
+All in-game text uses **Black Ops One**, a bold stencil-style typeface distributed under the SIL Open Font License 1.1. The font and its license are stored in `assets/fonts/`.
