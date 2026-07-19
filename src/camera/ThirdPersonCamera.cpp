@@ -7,7 +7,7 @@ namespace ultradope {
 
 ThirdPersonCamera::ThirdPersonCamera() {
     camera_.up = {0.0F, 1.0F, 0.0F};
-    camera_.fovy = 45.0F;
+    camera_.fovy = 40.0F;
     camera_.projection = CAMERA_PERSPECTIVE;
     Reset(CameraProfile::Outdoor);
 }
@@ -20,10 +20,10 @@ void ThirdPersonCamera::Reset(CameraProfile profile) {
         maxDistance_ = 13.0F;
         heightFactor_ = 0.48F;
     } else {
-        distance_ = 14.0F;
-        minDistance_ = 8.0F;
-        maxDistance_ = 20.0F;
-        heightFactor_ = 0.62F;
+        distance_ = 16.0F;
+        minDistance_ = 10.0F;
+        maxDistance_ = 21.0F;
+        heightFactor_ = 0.72F;
     }
     camera_.target = {0.0F, 1.1F, 0.0F};
     camera_.position = {0.0F, 1.1F + distance_ * heightFactor_, distance_};

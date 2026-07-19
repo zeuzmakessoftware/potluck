@@ -38,7 +38,7 @@ void DrawToast(const std::string& toast, float toastTime) {
 
 void DrawOutdoorHud(const GameSession& session, FarmInteractionKind interaction,
                     int targetPlot, const std::string& toast, float toastTime) {
-    ui::Panel(ui::Rect(18, 16, 330, 112), palette::Panel);
+    ui::Panel(ui::Rect(18, 16, 344, 112), palette::Panel);
     char line[160];
     std::snprintf(line, sizeof(line), "DAY %d  %s", session.calendar.day,
                   WeekdayName(session.calendar.day));
@@ -54,20 +54,19 @@ void DrawOutdoorHud(const GameSession& session, FarmInteractionKind interaction,
                          static_cast<float>(session.player.maxEnergy);
     std::snprintf(line, sizeof(line), "ENERGY %d/%d", session.player.energy,
                   session.player.maxEnergy);
-    ui::Bar(ui::Rect(18, 138, 330, 29), energy, Color{88, 177, 94, 255}, line);
+    ui::Bar(ui::Rect(18, 138, 344, 29), energy, Color{42, 129, 45, 255}, line);
 
-    ui::Panel(ui::Rect(18, 178, 520, 72), palette::Panel);
+    ui::Panel(ui::Rect(18, 178, 410, 72), palette::Panel);
     ui::Text(QuestTitle(session.quests.active), 34, 188, 20, palette::Gold);
     ui::Text(QuestObjectiveText(session).c_str(), 34, 218, 16, palette::Cream);
 
-    ui::Panel(ui::Rect(375, 646, 530, 58), palette::Panel);
+    ui::Panel(ui::Rect(350, 646, 610, 58), palette::Panel);
     for (int i = 0; i < 4; ++i) {
-        const Rectangle slot = ui::Rect(388.0F + static_cast<float>(i) * 126.0F, 655, 116, 40);
+        const Rectangle slot = ui::Rect(362.0F + static_cast<float>(i) * 146.0F, 655, 136, 40);
         const bool selected = static_cast<int>(session.selectedTool) == i;
-        DrawRectangleRounded(slot, 0.18F, 6,
-                             selected ? Color{94, 133, 72, 255} : Color{48, 61, 52, 235});
+        DrawRectangleRec(slot, selected ? Color{43, 66, 34, 255} : Color{20, 23, 18, 245});
         if (selected) {
-            DrawRectangleRoundedLinesEx(slot, 0.18F, 6, 2.0F * ui::Scale(), palette::Gold);
+            DrawRectangleLinesEx(slot, 2.0F * ui::Scale(), palette::Gold);
         }
         ui::CenteredText(ToolName(session, i), slot, i == 3 ? 15.0F : 17.0F, palette::Cream);
     }
@@ -82,7 +81,7 @@ void DrawOutdoorHud(const GameSession& session, FarmInteractionKind interaction,
 
     std::snprintf(line, sizeof(line), "CAN %d/%d   Z/X change seed", session.farm.wateringCan,
                   session.farm.wateringCanCapacity);
-    ui::Text(line, 1000, 675, 16, palette::Cream);
+    ui::Text(line, 982, 675, 16, palette::Cream);
     DrawToast(toast, toastTime);
 }
 

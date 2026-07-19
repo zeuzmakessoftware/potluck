@@ -47,8 +47,20 @@ Rectangle Rect(float x, float y, float width, float height) {
 }
 
 void Panel(Rectangle bounds, Color color) {
-    DrawRectangleRounded(bounds, 0.14F, 8, color);
-    DrawRectangleRoundedLinesEx(bounds, 0.14F, 8, 2.0F * Scale(), ColorAlpha(palette::Cream, 0.28F));
+    const float s = Scale();
+    DrawRectangleRec({bounds.x + 4.0F * s, bounds.y + 5.0F * s, bounds.width, bounds.height},
+                     Color{0, 0, 0, 105});
+    DrawRectangleRec(bounds, color);
+    DrawRectangleLinesEx(bounds, 1.0F * s, ColorAlpha(palette::Gold, 0.52F));
+    DrawRectangleLinesEx({bounds.x + 4.0F * s, bounds.y + 4.0F * s,
+                          bounds.width - 8.0F * s, bounds.height - 8.0F * s},
+                         1.0F * s, ColorAlpha(palette::Cream, 0.12F));
+    // Clipped corner marks make otherwise clean procedural UI feel screen-printed.
+    DrawLineEx({bounds.x, bounds.y + 11.0F * s}, {bounds.x + 11.0F * s, bounds.y},
+               2.0F * s, palette::Ink);
+    DrawLineEx({bounds.x + bounds.width - 11.0F * s, bounds.y + bounds.height},
+               {bounds.x + bounds.width, bounds.y + bounds.height - 11.0F * s},
+               2.0F * s, palette::Ink);
 }
 
 void Text(const char* text, float x, float y, float size, Color color) {
@@ -67,19 +79,20 @@ bool Button(Rectangle bounds, const char* label, bool enabled) {
     const bool hovered = enabled && CheckCollisionPointRec(GetMousePosition(), bounds);
     const Color fill = !enabled ? Color{70, 75, 70, 210} :
         (hovered ? Color{69, 126, 86, 245} : Color{48, 83, 63, 245});
-    DrawRectangleRounded(bounds, 0.18F, 7, fill);
-    DrawRectangleRoundedLinesEx(bounds, 0.18F, 7, 2.0F * Scale(),
-                                hovered ? palette::Gold : ColorAlpha(palette::Cream, 0.45F));
+    DrawRectangleRec(bounds, fill);
+    DrawRectangleLinesEx(bounds, 2.0F * Scale(),
+                         hovered ? palette::Gold : ColorAlpha(palette::Cream, 0.45F));
     CenteredText(label, bounds, 22.0F, enabled ? palette::Cream : GRAY);
     return hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 }
 
 void Bar(Rectangle bounds, float fraction, Color fill, const char* label) {
     fraction = std::clamp(fraction, 0.0F, 1.0F);
-    DrawRectangleRounded(bounds, 0.2F, 6, Color{25, 31, 28, 220});
+    DrawRectangleRec(bounds, Color{8, 10, 8, 235});
     Rectangle amount = bounds;
     amount.width *= fraction;
-    DrawRectangleRounded(amount, 0.2F, 6, fill);
+    DrawRectangleRec(amount, fill);
+    DrawRectangleLinesEx(bounds, 1.0F * Scale(), ColorAlpha(palette::Gold, 0.55F));
     CenteredText(label, bounds, 16.0F, palette::Cream);
 }
 

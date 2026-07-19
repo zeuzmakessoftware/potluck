@@ -63,6 +63,31 @@ HydroEquipment EquipmentForSelection(int selection) {
         default: return HydroEquipment::None;
     }
 }
+
+void DrawCinematicOverlay(float animationTime) {
+    const int width = GetScreenWidth();
+    const int height = GetScreenHeight();
+    // Warm grade, scanlines and a stepped vignette evoke a crunchy analog-era
+    // console image while keeping every gameplay element legible.
+    DrawRectangle(0, 0, width, height, Color{90, 43, 8, 18});
+    for (int y = 0; y < height; y += 4) {
+        DrawRectangle(0, y, width, 1, Color{9, 7, 4, 13});
+    }
+    for (int band = 0; band < 12; ++band) {
+        const int inset = band * 3;
+        const unsigned char alpha = static_cast<unsigned char>(8 + (12 - band) * 2);
+        DrawRectangle(inset, inset, width - inset * 2, 3, Color{0, 0, 0, alpha});
+        DrawRectangle(inset, height - inset - 3, width - inset * 2, 3, Color{0, 0, 0, alpha});
+        DrawRectangle(inset, inset, 3, height - inset * 2, Color{0, 0, 0, alpha});
+        DrawRectangle(width - inset - 3, inset, 3, height - inset * 2, Color{0, 0, 0, alpha});
+    }
+    const int frame = static_cast<int>(animationTime * 18.0F);
+    for (int i = 0; i < 34; ++i) {
+        const int x = (i * 197 + frame * 29) % std::max(width, 1);
+        const int y = (i * 83 + frame * 17) % std::max(height, 1);
+        DrawRectangle(x, y, 1 + (i % 2), 1, Color{235, 204, 139, 24});
+    }
+}
 }  // namespace
 
 int GameApp::Run() {
@@ -381,6 +406,7 @@ void GameApp::DrawGameWorld() const {
         DrawHydroWorld(session_, targetHydroSocket_, hydroValidationAttempted_,
                        hydroValidation_, animationTime_, moving_);
         EndMode3D();
+        DrawCinematicOverlay(animationTime_);
         DrawHydroHud(session_, hydroInteraction_, targetHydroSocket_, hydroValidation_,
                      hydroValidationAttempted_, toast_, toastTime_);
     } else {
@@ -388,6 +414,7 @@ void GameApp::DrawGameWorld() const {
         BeginMode3D(camera_.Camera());
         DrawOutdoorWorld(session_, targetPlot_, animationTime_, moving_);
         EndMode3D();
+        DrawCinematicOverlay(animationTime_);
         DrawOutdoorHud(session_, farmInteraction_, targetPlot_, toast_, toastTime_);
     }
 }

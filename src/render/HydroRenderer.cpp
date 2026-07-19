@@ -106,10 +106,14 @@ void DrawPipeRuns() {
 }
 
 void DrawRoom() {
-    DrawPlane({0.0F, 0.0F, 0.0F}, {20.0F, 16.0F}, Color{93, 99, 94, 255});
-    DrawCube({0.0F, 4.0F, -8.0F}, 20.0F, 8.0F, 0.25F, Color{207, 211, 198, 255});
-    DrawCube({-10.0F, 4.0F, 0.0F}, 0.25F, 8.0F, 16.0F, Color{192, 200, 192, 255});
-    DrawCube({10.0F, 4.0F, 0.0F}, 0.25F, 8.0F, 16.0F, Color{192, 200, 192, 255});
+    DrawPlane({0.0F, 0.0F, 0.0F}, {20.0F, 16.0F}, Color{56, 55, 46, 255});
+    DrawCube({0.0F, 4.0F, -8.0F}, 20.0F, 8.0F, 0.25F, Color{128, 125, 101, 255});
+    DrawCube({-10.0F, 4.0F, 0.0F}, 0.25F, 8.0F, 16.0F, Color{108, 108, 91, 255});
+    DrawCube({10.0F, 4.0F, 0.0F}, 0.25F, 8.0F, 16.0F, Color{108, 108, 91, 255});
+    for (int stripe = 0; stripe < 5; ++stripe) {
+        DrawCube({-7.5F + static_cast<float>(stripe) * 3.7F, 0.035F, 0.0F},
+                 0.10F, 0.05F, 16.0F, Color{36, 38, 32, 255});
+    }
     for (int x = -8; x <= 8; x += 4) {
         DrawCube({static_cast<float>(x), 7.6F, 0.0F}, 0.22F, 0.22F, 16.0F,
                  Color{68, 75, 70, 255});
