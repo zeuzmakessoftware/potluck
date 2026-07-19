@@ -112,9 +112,12 @@ void DrawOutdoorWorld(const GameSession& session, int targetPlot, float animatio
         DrawCubeWires({18.0F, 1.4F, -5.0F}, 3.8F, 2.8F, 5.0F, palette::Cream);
     }
     DrawPlots(session, targetPlot);
-    DrawNpcCharacter({-4.0F, 0.0F, 8.5F}, Color{57, 109, 75, 255}, palette::Cream, "Juniper");
-    DrawNpcCharacter({-12.0F, 0.0F, 6.5F}, Color{174, 91, 53, 255}, palette::Gold, "Milo");
-    DrawNpcCharacter({11.0F, 0.0F, -9.0F}, Color{112, 76, 151, 255}, palette::Violet, "Tessa");
+    DrawNpcCharacter({-4.0F, 0.0F, 8.5F}, Color{57, 109, 75, 255}, palette::Cream,
+                     "Juniper", animationTime);
+    DrawNpcCharacter({-12.0F, 0.0F, 6.5F}, Color{174, 91, 53, 255}, palette::Gold,
+                     "Milo", animationTime);
+    DrawNpcCharacter({11.0F, 0.0F, -9.0F}, Color{112, 76, 151, 255}, palette::Violet,
+                     "Tessa", animationTime);
     DrawPlayerCharacter(session.player, animationTime, moving);
     if (session.calendar.weather == Weather::Rainy) DrawRain(animationTime);
 }
