@@ -2,6 +2,9 @@
 
 #include "render/Palette.hpp"
 
+#include <algorithm>
+#include <rlgl.h>
+
 namespace ultradope {
 namespace {
 void DrawBoard(Vector3 position, Vector3 size, Color color) {
@@ -24,7 +27,7 @@ void DrawCrate(Vector3 p, float scale) {
 }
 }  // namespace
 
-void DrawFarmhouse() {
+void DrawFarmhouse(float doorOpenFraction) {
     DrawCube({0.0F, 2.6F, 15.0F}, 10.0F, 5.2F, 7.0F, Color{158, 137, 94, 255});
     DrawCubeWires({0.0F, 2.6F, 15.0F}, 10.0F, 5.2F, 7.0F, Color{65, 43, 28, 255});
     // Uneven roof bands fake rows of sun-baked tile without external textures.
@@ -34,8 +37,19 @@ void DrawFarmhouse() {
         DrawBoard({0.0F, 5.5F + static_cast<float>(row % 2) * 0.05F, z},
                   {11.2F, 0.42F, 1.34F}, tile);
     }
-    DrawBoard({0.0F, 1.42F, 11.42F}, {2.05F, 2.84F, 0.28F}, Color{62, 39, 25, 255});
-    DrawCube({0.0F, 1.45F, 11.24F}, 0.13F, 2.30F, 0.08F, Color{35, 26, 18, 255});
+    DrawCube({0.0F, 1.42F, 11.43F}, 2.18F, 2.92F, 0.20F, Color{23, 20, 16, 255});
+    DrawBoard({-1.13F, 1.48F, 11.30F}, {0.18F, 3.08F, 0.30F}, palette::Wood);
+    DrawBoard({1.13F, 1.48F, 11.30F}, {0.18F, 3.08F, 0.30F}, palette::Wood);
+    DrawBoard({0.0F, 2.96F, 11.30F}, {2.44F, 0.18F, 0.30F}, palette::Wood);
+
+    const float doorAngle = 94.0F * std::clamp(doorOpenFraction, 0.0F, 1.0F);
+    rlPushMatrix();
+    rlTranslatef(1.02F, 1.42F, 11.22F);
+    rlRotatef(doorAngle, 0.0F, 1.0F, 0.0F);
+    DrawBoard({-1.02F, 0.0F, 0.0F}, {2.04F, 2.84F, 0.28F}, Color{62, 39, 25, 255});
+    DrawCube({-1.02F, 0.03F, -0.16F}, 0.13F, 2.30F, 0.08F, Color{35, 26, 18, 255});
+    DrawSphere({-1.72F, 0.05F, -0.19F}, 0.09F, palette::Gold);
+    rlPopMatrix();
     DrawWindow(-3.0F, 2.8F, 11.40F);
     DrawWindow(3.0F, 2.8F, 11.40F);
     DrawCylinder({3.5F, 5.75F, 16.5F}, 0.45F, 0.45F, 2.6F, 8, Color{69, 47, 35, 255});

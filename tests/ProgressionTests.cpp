@@ -64,4 +64,12 @@ void RunProgressionTests() {
     Expect(!AdvanceClock(session, 60.0F), "outdoor clock pauses in hydro lab");
     Expect(session.calendar.minuteOfDay == labTime, "lab does not advance farm time");
     Expect(WeatherForDay(123U, 4) == WeatherForDay(123U, 4), "weather deterministic");
+
+    GameSession morning = GameSession::NewGame();
+    morning.progression.lastMorningDoorCutsceneDay = morning.calendar.day;
+    const int viewedDay = morning.calendar.day;
+    EndDay(morning);
+    ExpectEqual(morning.calendar.day, viewedDay + 1, "day rollover advances calendar");
+    ExpectEqual(morning.progression.lastMorningDoorCutsceneDay, viewedDay,
+                "day rollover makes next morning cutscene due");
 }

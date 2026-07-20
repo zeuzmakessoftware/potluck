@@ -4,7 +4,7 @@
 
 namespace ultradope {
 
-void DrawFarmhouse();
+void DrawFarmhouse(float doorOpenFraction = 0.0F);
 void DrawSeedKiosk();
 void DrawShippingBin();
 void DrawWaterTank();

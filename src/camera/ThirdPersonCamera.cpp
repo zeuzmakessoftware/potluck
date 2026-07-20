@@ -29,6 +29,16 @@ void ThirdPersonCamera::Reset(CameraProfile profile) {
     camera_.position = {0.0F, 1.1F + distance_ * heightFactor_, distance_};
 }
 
+void ThirdPersonCamera::SnapToPlayer(const PlayerState& player, float yawRadians) {
+    yaw_ = yawRadians;
+    camera_.target = {player.position.x, 1.1F, player.position.y};
+    camera_.position = {
+        camera_.target.x + std::sin(yaw_) * distance_,
+        camera_.target.y + distance_ * heightFactor_,
+        camera_.target.z + std::cos(yaw_) * distance_
+    };
+}
+
 void ThirdPersonCamera::Update(const PlayerState& player, float rotationRate,
                                float rotationDelta, float zoomInput, float deltaTime) {
     yaw_ += rotationRate * deltaTime * 1.8F + rotationDelta;

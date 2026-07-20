@@ -36,6 +36,7 @@ pkg_check_modules(RAYLIB REQUIRED IMPORTED_TARGET raylib)
 add_executable(potluck
     src/main.cpp
     src/app/GameApp.cpp
+    src/app/MorningDoorCutscene.cpp
     src/camera/ThirdPersonCamera.cpp
     src/input/GameInput.cpp
     src/render/PrimitiveDraw.cpp

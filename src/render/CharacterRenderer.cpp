@@ -15,6 +15,7 @@ struct CharacterPose {
     float sway = 0.0F;
     float leftArm = 0.0F;
     float rightArm = 0.0F;
+    float rightArmLift = 0.0F;
     float leftLeg = 0.0F;
     float rightLeg = 0.0F;
     float headTilt = 0.0F;
@@ -71,7 +72,8 @@ void DrawPerson(Vector3 p, float facing, Color clothing, Color accent,
     const Vector3 leftHand = LocalPoint(
         p, -0.49F, 0.60F + std::fabs(pose.leftArm) * 0.10F, pose.leftArm, facing);
     const Vector3 rightHand = LocalPoint(
-        p, 0.49F, 0.60F + std::fabs(pose.rightArm) * 0.10F, pose.rightArm, facing);
+        p, 0.49F, 0.60F + std::fabs(pose.rightArm) * 0.10F + pose.rightArmLift,
+        pose.rightArm, facing);
     DrawLimb(leftShoulder, leftHand, 0.105F, clothing);
     DrawLimb(rightShoulder, rightHand, 0.105F, clothing);
     DrawSphere(leftHand, 0.13F, skin);
@@ -117,29 +119,45 @@ float NamePhase(const char* name) {
 }
 }  // namespace
 
-void DrawPlayerCharacter(const PlayerState& player, float animationTime, bool moving) {
-    CharacterPose pose;
-    if (moving) {
-        const float stride = std::sin(animationTime * 9.0F);
-        pose.bob = std::fabs(std::cos(animationTime * 9.0F)) * 0.065F;
-        pose.sway = stride * 0.025F;
-        pose.leftArm = stride * 0.34F;
-        pose.rightArm = -stride * 0.34F;
-        pose.leftLeg = -stride * 0.25F;
-        pose.rightLeg = stride * 0.25F;
-        pose.headTilt = -stride * 0.018F;
-    } else {
-        const float breath = std::sin(animationTime * 2.2F);
-        pose.bob = breath * 0.018F;
-        pose.sway = std::sin(animationTime * 1.1F) * 0.012F;
-        pose.leftArm = breath * 0.025F;
-        pose.rightArm = -breath * 0.025F;
-        pose.headTilt = std::sin(animationTime * 0.8F) * 0.015F;
-    }
-    pose.blinking = std::fmod(animationTime, 4.2F) > 4.05F;
+void DrawPlayerCharacter(const PlayerRenderState& state) {
+    const float walk = std::clamp(state.walkBlend, 0.0F, 1.0F);
+    const float reach = std::clamp(state.doorReachBlend, 0.0F, 1.0F);
+    const float breath = std::sin(state.animationTime * 2.2F);
+    const float stride = std::sin(state.animationTime * 9.0F);
 
-    DrawPerson({player.position.x, 0.58F, player.position.y}, player.facingRadians,
+    CharacterPose pose;
+    pose.bob = breath * 0.018F * (1.0F - walk) +
+               std::fabs(std::cos(state.animationTime * 9.0F)) * 0.065F * walk;
+    pose.sway = std::sin(state.animationTime * 1.1F) * 0.012F * (1.0F - walk) +
+                stride * 0.025F * walk;
+    pose.leftArm = breath * 0.025F * (1.0F - walk) + stride * 0.34F * walk;
+    pose.rightArm = -breath * 0.025F * (1.0F - walk) - stride * 0.34F * walk;
+    pose.leftLeg = -stride * 0.25F * walk;
+    pose.rightLeg = stride * 0.25F * walk;
+    pose.headTilt = std::sin(state.animationTime * 0.8F) * 0.015F * (1.0F - walk) -
+                    stride * 0.018F * walk;
+
+    pose.rightArm = pose.rightArm * (1.0F - reach) + 0.72F * reach;
+    pose.rightArmLift = 0.48F * reach;
+    pose.leftArm *= 1.0F - reach * 0.55F;
+    pose.leftLeg *= 1.0F - reach;
+    pose.rightLeg *= 1.0F - reach;
+    pose.bob *= 1.0F - reach * 0.7F;
+    pose.headTilt -= reach * 0.045F;
+    pose.blinking = std::fmod(state.animationTime, 4.2F) > 4.05F;
+
+    DrawPerson({state.position.x, 0.58F, state.position.y}, state.facingRadians,
                Color{62, 107, 145, 255}, palette::Gold, pose);
+}
+
+void DrawPlayerCharacter(const PlayerState& player, float animationTime, bool moving) {
+    DrawPlayerCharacter(PlayerRenderState{
+        player.position,
+        player.facingRadians,
+        animationTime,
+        moving ? 1.0F : 0.0F,
+        0.0F
+    });
 }
 
 void DrawNpcCharacter(Vector3 position, Color clothing, Color accent, const char* name,

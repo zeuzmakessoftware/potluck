@@ -13,6 +13,7 @@ public:
     ThirdPersonCamera();
 
     void Reset(CameraProfile profile);
+    void SnapToPlayer(const PlayerState& player, float yawRadians);
     void Update(const PlayerState& player, float rotationRate, float rotationDelta,
                 float zoomInput, float deltaTime);
     Vec2 MovementVector(float right, float forward) const;

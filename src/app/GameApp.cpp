@@ -100,6 +100,9 @@ int GameApp::Run() {
     if (!LoadTitleScreenAssets()) {
         TraceLog(LOG_WARNING, "Could not load title artwork; using procedural fallback.");
     }
+    if (!LoadIntroScreenAssets()) {
+        TraceLog(LOG_WARNING, "Could not load all origin artwork; using procedural fallbacks.");
+    }
     SetWindowMinSize(960, 540);
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
@@ -114,6 +117,7 @@ int GameApp::Run() {
     }
 
     EnableCursor();
+    UnloadIntroScreenAssets();
     UnloadTitleScreenAssets();
     ui::UnloadGameFont();
     CloseWindow();
@@ -123,7 +127,7 @@ int GameApp::Run() {
 void GameApp::StartNewGame() {
     session_ = GameSession::NewGame();
     camera_.Reset(CameraProfile::Outdoor);
-    introCard_ = 0;
+    ResetOriginPresentation();
     hydroValidation_ = ValidateHydroBuild(session_.hydro);
     hydroValidationAttempted_ = false;
     ResetTransientTargets();
@@ -134,7 +138,14 @@ void GameApp::ContinueGame() {
     std::string message;
     if (saves_.Load(session_, message)) {
         ConfigureLoadedEnvironment();
-        SetScreen(session_.progression.originCompleted ? AppScreen::Playing : AppScreen::OriginIntro);
+        if (!session_.progression.originCompleted) {
+            ResetOriginPresentation();
+            SetScreen(AppScreen::OriginIntro);
+        } else if (ShouldStartMorningDoorCutscene()) {
+            StartMorningDoorCutscene();
+        } else {
+            SetScreen(AppScreen::Playing);
+        }
     }
     ShowMessage(std::move(message));
 }
@@ -147,9 +158,88 @@ void GameApp::CompleteOrigin() {
     session_.player.position = FarmEntrySpawn();
     session_.player.facingRadians = 3.14159F;
     camera_.Reset(CameraProfile::Outdoor);
+    camera_.SnapToPlayer(session_.player, 3.14159F);
     ResetTransientTargets();
-    ShowMessage("1972. Bramble Acre is yours to learn. Find Juniper by the farmhouse.");
+
+    std::string message;
+    if (!saves_.Save(session_, message)) ShowMessage(std::move(message));
+    StartMorningDoorCutscene();
+}
+
+void GameApp::ResetOriginPresentation() {
+    introCard_ = 0;
+    introCardTime_ = 0.0F;
+    introFadeOpacity_ = 1.0F;
+    introTransitionPhase_ = IntroTransitionPhase::FadeIn;
+}
+
+void GameApp::UpdateOriginPresentation(float deltaTime) {
+    introCardTime_ += deltaTime;
+    switch (introTransitionPhase_) {
+        case IntroTransitionPhase::Idle:
+            break;
+        case IntroTransitionPhase::FadeOut:
+            introFadeOpacity_ = std::min(1.0F, introFadeOpacity_ + deltaTime / 0.24F);
+            if (introFadeOpacity_ >= 1.0F) {
+                ++introCard_;
+                introCardTime_ = 0.0F;
+                introTransitionPhase_ = IntroTransitionPhase::FadeIn;
+            }
+            break;
+        case IntroTransitionPhase::FadeIn:
+            introFadeOpacity_ = std::max(0.0F, introFadeOpacity_ - deltaTime / 0.36F);
+            if (introFadeOpacity_ <= 0.0F) {
+                introTransitionPhase_ = IntroTransitionPhase::Idle;
+            }
+            break;
+        case IntroTransitionPhase::Completing:
+            introFadeOpacity_ = std::min(1.0F, introFadeOpacity_ + deltaTime / 0.28F);
+            if (introFadeOpacity_ >= 1.0F) CompleteOrigin();
+            break;
+    }
+}
+
+bool GameApp::ShouldStartMorningDoorCutscene() const {
+    return session_.progression.originCompleted &&
+           session_.progression.environment == EnvironmentId::OutdoorFarm &&
+           session_.progression.lastMorningDoorCutsceneDay < session_.calendar.day &&
+           std::fabs(session_.calendar.minuteOfDay - 360.0F) <= 1.0F;
+}
+
+void GameApp::StartMorningDoorCutscene() {
+    session_.player.position = FarmEntrySpawn();
+    session_.player.facingRadians = 3.14159F;
+    camera_.Reset(CameraProfile::Outdoor);
+    camera_.SnapToPlayer(session_.player, 3.14159F);
+    ResetTransientTargets();
+    morningDoorCutscene_.Start(session_.calendar.day);
+    SetScreen(AppScreen::MorningDoorCutscene);
+}
+
+void GameApp::UpdateMorningDoorCutscene(float deltaTime) {
+    morningDoorCutscene_.Advance(deltaTime);
+    const bool skip = !screenInputBlocked_ &&
+                      (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) ||
+                       IsKeyPressed(KEY_ESCAPE));
+    if (skip || morningDoorCutscene_.IsFinished()) FinishMorningDoorCutscene();
+}
+
+void GameApp::FinishMorningDoorCutscene() {
+    session_.progression.lastMorningDoorCutsceneDay = session_.calendar.day;
+    session_.player.position = FarmEntrySpawn();
+    session_.player.facingRadians = 3.14159F;
+    camera_.Reset(CameraProfile::Outdoor);
+    camera_.SnapToPlayer(session_.player, 3.14159F);
+    ResetTransientTargets();
+
+    std::string message;
+    const bool saved = saves_.Save(session_, message);
     SetScreen(AppScreen::Playing);
+    if (!saved) {
+        ShowMessage(std::move(message));
+    } else if (session_.calendar.day == 1) {
+        ShowMessage("1972. Bramble Acre is yours to learn. Find Juniper by the farmhouse.");
+    }
 }
 
 void GameApp::Update(float deltaTime) {
@@ -157,7 +247,13 @@ void GameApp::Update(float deltaTime) {
     screenInputBlocked_ = screenInputBlockTime_ > 0.0F;
     animationTime_ += deltaTime;
     toastTime_ = std::max(0.0F, toastTime_ - deltaTime);
-    if (screen_ == AppScreen::Playing) UpdateGameplay(deltaTime);
+    if (screen_ == AppScreen::OriginIntro) {
+        UpdateOriginPresentation(deltaTime);
+    } else if (screen_ == AppScreen::MorningDoorCutscene) {
+        UpdateMorningDoorCutscene(deltaTime);
+    } else if (screen_ == AppScreen::Playing) {
+        UpdateGameplay(deltaTime);
+    }
 }
 
 void GameApp::UpdateGameplay(float deltaTime) {
@@ -186,8 +282,12 @@ void GameApp::UpdateGameplay(float deltaTime) {
     }
     if (input.load) {
         std::string message;
-        if (saves_.Load(session_, message)) ConfigureLoadedEnvironment();
+        if (saves_.Load(session_, message)) {
+            ConfigureLoadedEnvironment();
+            if (ShouldStartMorningDoorCutscene()) StartMorningDoorCutscene();
+        }
         ShowMessage(std::move(message));
+        if (screen_ != AppScreen::Playing) return;
     }
 
     const Vec2 movement = camera_.MovementVector(input.moveRight, input.moveForward);
@@ -392,9 +492,10 @@ void GameApp::SetScreen(AppScreen screen) {
     screen_ = screen;
     screenInputBlocked_ = true;
     screenInputBlockTime_ = 0.2F;
-    const bool gameplay = screen == AppScreen::Playing;
-    mouseCaptured_ = gameplay;
-    if (gameplay) DisableCursor(); else EnableCursor();
+    const bool captureMouse =
+        screen == AppScreen::Playing || screen == AppScreen::MorningDoorCutscene;
+    mouseCaptured_ = captureMouse;
+    if (captureMouse) DisableCursor(); else EnableCursor();
 }
 
 void GameApp::ShowMessage(std::string message) {
@@ -423,9 +524,19 @@ void GameApp::DrawGameWorld() const {
     }
 }
 
+void GameApp::DrawMorningDoorCutscene() const {
+    const MorningDoorCutsceneFrame frame = morningDoorCutscene_.Evaluate(camera_.Camera());
+    ClearBackground(SkyColorForTime(session_));
+    BeginMode3D(frame.camera);
+    DrawOutdoorWorld(session_, -1, animationTime_, frame.player, frame.doorOpenFraction);
+    EndMode3D();
+    DrawCinematicOverlay(animationTime_);
+    morningDoorCutscene_.DrawOverlay();
+}
+
 void GameApp::Draw() {
     if (screen_ == AppScreen::Title) {
-        const TitleAction action = DrawTitleScreen(saves_.HasSave());
+        const TitleAction action = DrawTitleScreen(saves_.HasSave(), animationTime_);
         if (action == TitleAction::NewGame) StartNewGame();
         if (action == TitleAction::Continue) ContinueGame();
         if (action == TitleAction::Options) {
@@ -436,14 +547,25 @@ void GameApp::Draw() {
         return;
     }
     if (screen_ == AppScreen::OriginIntro) {
-        const IntroAction action = DrawIntroScreen(introCard_);
-        if (action == IntroAction::Advance) ++introCard_;
-        if (action == IntroAction::Complete || action == IntroAction::Skip) CompleteOrigin();
+        const bool inputEnabled = introTransitionPhase_ == IntroTransitionPhase::Idle &&
+                                  introCardTime_ >= 1.15F && !screenInputBlocked_;
+        const IntroAction action = DrawIntroScreen(
+            {introCard_, introCardTime_, animationTime_, introFadeOpacity_, inputEnabled});
+        if (action == IntroAction::Advance) {
+            introTransitionPhase_ = IntroTransitionPhase::FadeOut;
+        }
+        if (action == IntroAction::Complete || action == IntroAction::Skip) {
+            introTransitionPhase_ = IntroTransitionPhase::Completing;
+        }
+        return;
+    }
+    if (screen_ == AppScreen::MorningDoorCutscene) {
+        DrawMorningDoorCutscene();
         return;
     }
 
     if (screen_ == AppScreen::Settings && settingsReturnScreen_ == AppScreen::Title) {
-        DrawTitleScreenBackdrop();
+        DrawTitleScreenBackdrop(animationTime_);
     } else {
         DrawGameWorld();
     }
@@ -460,7 +582,10 @@ void GameApp::Draw() {
             }
             if (action == PauseAction::Load) {
                 std::string message;
-                if (saves_.Load(session_, message)) ConfigureLoadedEnvironment();
+                if (saves_.Load(session_, message)) {
+                    ConfigureLoadedEnvironment();
+                    if (ShouldStartMorningDoorCutscene()) StartMorningDoorCutscene();
+                }
                 ShowMessage(std::move(message));
             }
             if (action == PauseAction::Settings) {
@@ -534,7 +659,15 @@ void GameApp::Draw() {
             }
             break;
         case AppScreen::DaySummary:
-            if (DrawDaySummaryScreen(session_.lastSummary)) SetScreen(AppScreen::Playing);
+            if (!screenInputBlocked_ && DrawDaySummaryScreen(session_.lastSummary)) {
+                if (ShouldStartMorningDoorCutscene()) {
+                    StartMorningDoorCutscene();
+                } else {
+                    SetScreen(AppScreen::Playing);
+                }
+            } else if (screenInputBlocked_) {
+                DrawDaySummaryScreen(session_.lastSummary);
+            }
             break;
         case AppScreen::HydroUnlocked: {
             const HydroUnlockAction action = DrawHydroUnlockedScreen();
@@ -558,6 +691,7 @@ void GameApp::Draw() {
         }
         case AppScreen::Title:
         case AppScreen::OriginIntro:
+        case AppScreen::MorningDoorCutscene:
             break;
     }
 }

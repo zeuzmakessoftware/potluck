@@ -20,6 +20,7 @@ struct ProgressionState {
     bool originCompleted = false;
     bool hydroUnlocked = false;
     bool hydroBriefingSeen = false;
+    int lastMorningDoorCutsceneDay = 0;
 };
 
 }  // namespace ultradope

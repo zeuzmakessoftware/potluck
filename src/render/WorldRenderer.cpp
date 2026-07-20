@@ -93,13 +93,14 @@ Color SkyColorForTime(const GameSession& session) {
     return Color{185, 132, 67, 255};
 }
 
-void DrawOutdoorWorld(const GameSession& session, int targetPlot, float animationTime, bool moving) {
+void DrawOutdoorWorld(const GameSession& session, int targetPlot, float animationTime,
+                      const PlayerRenderState& player, float doorOpenFraction) {
     DrawPlane({0.0F, -0.02F, 0.0F}, {46.0F, 44.0F}, palette::Grass);
     DrawCube({0.0F, 0.03F, 7.5F}, 3.0F, 0.08F, 8.0F, palette::Path);
     DrawCube({-7.0F, 0.03F, 8.0F}, 15.0F, 0.08F, 2.0F, palette::Path);
     DrawCube({8.0F, 0.03F, 7.0F}, 14.0F, 0.08F, 1.8F, palette::Path);
     DrawGroundDetail();
-    DrawFarmhouse();
+    DrawFarmhouse(doorOpenFraction);
     DrawSeedKiosk();
     DrawShippingBin();
     DrawWaterTank();
@@ -118,8 +119,15 @@ void DrawOutdoorWorld(const GameSession& session, int targetPlot, float animatio
                      "Milo", animationTime);
     DrawNpcCharacter({11.0F, 0.0F, -9.0F}, Color{112, 76, 151, 255}, palette::Violet,
                      "Tessa", animationTime);
-    DrawPlayerCharacter(session.player, animationTime, moving);
+    DrawPlayerCharacter(player);
     if (session.calendar.weather == Weather::Rainy) DrawRain(animationTime);
+}
+
+void DrawOutdoorWorld(const GameSession& session, int targetPlot, float animationTime, bool moving) {
+    DrawOutdoorWorld(session, targetPlot, animationTime,
+                     PlayerRenderState{session.player.position, session.player.facingRadians,
+                                       animationTime, moving ? 1.0F : 0.0F, 0.0F},
+                     0.0F);
 }
 
 }  // namespace ultradope

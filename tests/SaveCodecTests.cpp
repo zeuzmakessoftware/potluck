@@ -32,6 +32,7 @@ void RunSaveCodecTests() {
     source.progression.environment = EnvironmentId::HydroLab;
     source.progression.hydroUnlocked = true;
     source.progression.hydroBriefingSeen = true;
+    source.progression.lastMorningDoorCutsceneDay = 5;
     source.quests.active = QuestId::Complete;
     source.quests.spokeToTessa = true;
     source.quests.hydroBuildValidated = true;
@@ -41,7 +42,7 @@ void RunSaveCodecTests() {
     source.hydro.completionAcknowledged = true;
 
     const std::string encoded = SaveCodec::Encode(source);
-    Expect(encoded.rfind("POTLUCK 1\n", 0) == 0, "Potluck save header");
+    Expect(encoded.rfind("POTLUCK 2\n", 0) == 0, "Potluck save header");
 
     GameSession decoded;
     std::string error;
@@ -57,11 +58,32 @@ void RunSaveCodecTests() {
     Expect(decoded.progression.chapter == ChapterId::VerticalSliceComplete,
            "chapter round trip");
     Expect(decoded.progression.hydroBriefingSeen, "briefing flag round trip");
+    ExpectEqual(decoded.progression.lastMorningDoorCutsceneDay, 5,
+                "morning cutscene day round trip");
     Expect(decoded.hydro.selectedEquipment == HydroEquipment::GrowLight,
            "hydro selection round trip");
     Expect(decoded.hydro.equipment == source.hydro.equipment, "all placements round trip");
     Expect(decoded.hydro.completed && decoded.hydro.completionAcknowledged,
            "hydro completion round trip");
+
+    const std::string legacyCompleted = ReplaceOnce(
+        ReplaceOnce(encoded, "POTLUCK 2\n", "POTLUCK 1\n"),
+        "MORNING_CUTSCENE 5\n", "");
+    GameSession migratedCompleted;
+    Expect(SaveCodec::Decode(legacyCompleted, migratedCompleted, error),
+           "load completed-origin version 1 save");
+    ExpectEqual(migratedCompleted.progression.lastMorningDoorCutsceneDay, 6,
+                "completed legacy save marks current morning viewed");
+
+    const std::string pendingEncoded = SaveCodec::Encode(GameSession::NewGame());
+    const std::string legacyPending = ReplaceOnce(
+        ReplaceOnce(pendingEncoded, "POTLUCK 2\n", "POTLUCK 1\n"),
+        "MORNING_CUTSCENE 0\n", "");
+    GameSession migratedPending;
+    Expect(SaveCodec::Decode(legacyPending, migratedPending, error),
+           "load incomplete-origin version 1 save");
+    ExpectEqual(migratedPending.progression.lastMorningDoorCutsceneDay, 0,
+                "incomplete legacy save keeps morning unseen");
 
     GameSession unchanged = GameSession::NewGame();
     unchanged.money = 123;
@@ -70,6 +92,18 @@ void RunSaveCodecTests() {
     ExpectEqual(unchanged.money, 123, "old header leaves output unchanged");
     Expect(!SaveCodec::Decode("POTLUCK 99\nEND\n", unchanged, error), "reject future version");
     Expect(!SaveCodec::Decode("POTLUCK 1\nEND\n", unchanged, error), "reject truncation");
+
+    const std::string missingMorning = ReplaceOnce(encoded, "MORNING_CUTSCENE 5\n", "");
+    Expect(!SaveCodec::Decode(missingMorning, unchanged, error),
+           "reject version 2 without morning cutscene state");
+    const std::string negativeMorning =
+        ReplaceOnce(encoded, "MORNING_CUTSCENE 5", "MORNING_CUTSCENE -1");
+    Expect(!SaveCodec::Decode(negativeMorning, unchanged, error),
+           "reject negative morning cutscene day");
+    const std::string futureMorning =
+        ReplaceOnce(encoded, "MORNING_CUTSCENE 5", "MORNING_CUTSCENE 7");
+    Expect(!SaveCodec::Decode(futureMorning, unchanged, error),
+           "reject future morning cutscene day");
 
     const std::string lockedLab = ReplaceOnce(
         encoded, "PROGRESSION 1 3 1 1 1 1", "PROGRESSION 1 3 1 1 0 0");

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/MorningDoorCutscene.hpp"
 #include "camera/ThirdPersonCamera.hpp"
 #include "domain/GameSession.hpp"
 #include "input/GameInput.hpp"
@@ -16,6 +17,7 @@ namespace ultradope {
 enum class AppScreen {
     Title,
     OriginIntro,
+    MorningDoorCutscene,
     Playing,
     Pause,
     Settings,
@@ -34,15 +36,24 @@ public:
     int Run();
 
 private:
+    enum class IntroTransitionPhase { Idle, FadeOut, FadeIn, Completing };
+
     void StartNewGame();
     void ContinueGame();
     void CompleteOrigin();
+    void ResetOriginPresentation();
+    void UpdateOriginPresentation(float deltaTime);
+    bool ShouldStartMorningDoorCutscene() const;
+    void StartMorningDoorCutscene();
+    void UpdateMorningDoorCutscene(float deltaTime);
+    void FinishMorningDoorCutscene();
     void Update(float deltaTime);
     void UpdateGameplay(float deltaTime);
     void UpdateOutdoorGameplay(const GameInput& input, float deltaTime);
     void UpdateHydroGameplay(const GameInput& input, float deltaTime);
     void Draw();
     void DrawGameWorld() const;
+    void DrawMorningDoorCutscene() const;
     void OpenFarmInteraction(FarmInteractionKind interaction);
     void EnterEnvironment(EnvironmentId environment);
     void ConfigureLoadedEnvironment();
@@ -58,6 +69,7 @@ private:
     AppPreferences preferences_;
     PreferencesService preferencesService_;
     ThirdPersonCamera camera_;
+    MorningDoorCutscene morningDoorCutscene_;
     AppScreen screen_ = AppScreen::Title;
     AppScreen settingsReturnScreen_ = AppScreen::Pause;
     FarmInteractionKind farmInteraction_ = FarmInteractionKind::None;
@@ -66,6 +78,9 @@ private:
     HydroValidationResult hydroValidation_;
     int targetPlot_ = -1;
     int introCard_ = 0;
+    float introCardTime_ = 0.0F;
+    float introFadeOpacity_ = 0.0F;
+    IntroTransitionPhase introTransitionPhase_ = IntroTransitionPhase::Idle;
     bool running_ = true;
     bool mouseCaptured_ = false;
     bool moving_ = false;

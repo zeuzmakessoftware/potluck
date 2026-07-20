@@ -38,7 +38,7 @@ Vector2 TitlePoint(float x, float y) {
     return {layout.offsetX + x * layout.scale, layout.offsetY + y * layout.scale};
 }
 
-void DrawBackgroundCover() {
+void DrawBackgroundCover(float animationTime) {
     if (!titleBackgroundLoaded) {
         DrawRectangleGradientV(0, 0, GetScreenWidth(), GetScreenHeight(),
                                Color{199, 139, 39, 255}, Color{31, 35, 18, 255});
@@ -49,17 +49,31 @@ void DrawBackgroundCover() {
                                static_cast<float>(std::max(GetScreenHeight(), 1));
     const float textureAspect = static_cast<float>(titleBackground.width) /
                                 static_cast<float>(std::max(titleBackground.height, 1));
-    Rectangle source{0.0F, 0.0F, static_cast<float>(titleBackground.width),
-                     static_cast<float>(titleBackground.height)};
+    Rectangle baseSource{0.0F, 0.0F, static_cast<float>(titleBackground.width),
+                         static_cast<float>(titleBackground.height)};
     if (screenAspect > textureAspect) {
         const float sourceHeight = static_cast<float>(titleBackground.width) / screenAspect;
-        source.y = (static_cast<float>(titleBackground.height) - sourceHeight) * 0.5F;
-        source.height = sourceHeight;
+        baseSource.y = (static_cast<float>(titleBackground.height) - sourceHeight) * 0.5F;
+        baseSource.height = sourceHeight;
     } else {
         const float sourceWidth = static_cast<float>(titleBackground.height) * screenAspect;
-        source.x = (static_cast<float>(titleBackground.width) - sourceWidth) * 0.5F;
-        source.width = sourceWidth;
+        baseSource.x = (static_cast<float>(titleBackground.width) - sourceWidth) * 0.5F;
+        baseSource.width = sourceWidth;
     }
+
+    // A little overscan lets the artwork drift without ever revealing its edges.
+    const float zoom = 1.028F + std::sin(animationTime * 0.52F) * 0.008F;
+    Rectangle source{baseSource.x, baseSource.y, baseSource.width / zoom,
+                     baseSource.height / zoom};
+    const float insetX = (baseSource.width - source.width) * 0.5F;
+    const float insetY = (baseSource.height - source.height) * 0.5F;
+    source.x += insetX + std::sin(animationTime * 0.095F) * insetX * 0.72F;
+    source.y += insetY + std::sin(animationTime * 0.073F + 1.3F) * insetY * 0.58F;
+    source.x = std::clamp(source.x, 0.0F,
+                          static_cast<float>(titleBackground.width) - source.width);
+    source.y = std::clamp(source.y, 0.0F,
+                          static_cast<float>(titleBackground.height) - source.height);
+
     DrawTexturePro(titleBackground, source,
                    {0.0F, 0.0F, static_cast<float>(GetScreenWidth()),
                     static_cast<float>(GetScreenHeight())},
@@ -186,22 +200,36 @@ void UnloadTitleScreenAssets() {
     titleBackgroundLoaded = false;
 }
 
-void DrawTitleScreenBackdrop() {
-    DrawBackgroundCover();
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{84, 49, 7, 20});
-    DrawRectangleGradientH(0, 0, GetScreenWidth(), GetScreenHeight(),
+void DrawTitleScreenBackdrop(float animationTime) {
+    const int width = GetScreenWidth();
+    const int height = GetScreenHeight();
+    DrawBackgroundCover(animationTime);
+
+    const unsigned char warmth = static_cast<unsigned char>(
+        20 + static_cast<int>((std::sin(animationTime * 0.24F) + 1.0F) * 2.0F));
+    DrawRectangle(0, 0, width, height, Color{84, 49, 7, warmth});
+    DrawRectangleGradientH(0, 0, width, height,
                            Color{5, 7, 2, 12}, Color{2, 3, 1, 58});
-    for (int y = 0; y < GetScreenHeight(); y += 4) {
-        DrawRectangle(0, y, GetScreenWidth(), 1, Color{8, 7, 3, 11});
+
+    const int scanlinePhase = static_cast<int>(animationTime * 2.0F) % 4;
+    for (int y = scanlinePhase; y < height; y += 4) {
+        DrawRectangle(0, y, width, 1, Color{8, 7, 3, 11});
     }
+    const int grainFrame = static_cast<int>(animationTime * 12.0F);
+    for (int i = 0; i < 26; ++i) {
+        const int x = (i * 211 + grainFrame * 31) % std::max(width, 1);
+        const int y = (i * 89 + grainFrame * 19) % std::max(height, 1);
+        DrawRectangle(x, y, 1 + (i % 2), 1, Color{235, 204, 139, 18});
+    }
+
     DrawLogo();
     DrawStoneMenuFrame();
     ui::CenteredText("BRAMBLE ACRE  /  1972", TitleRect(0, 684, 1280, 24), 18,
                      Color{232, 215, 166, 220});
 }
 
-TitleAction DrawTitleScreen(bool hasSave) {
-    DrawTitleScreenBackdrop();
+TitleAction DrawTitleScreen(bool hasSave, float animationTime) {
+    DrawTitleScreenBackdrop(animationTime);
 
     if (StoneButton(TitleRect(849, 286, 330, 69), "NEW FARM", true, 0) ||
         IsKeyPressed(KEY_N)) {

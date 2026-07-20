@@ -4,6 +4,16 @@ namespace ultradope {
 
 enum class IntroAction { None, Advance, Complete, Skip };
 
-IntroAction DrawIntroScreen(int cardIndex);
+struct IntroPresentation {
+    int cardIndex;
+    float cardTime;
+    float animationTime;
+    float fadeOpacity;
+    bool inputEnabled;
+};
+
+bool LoadIntroScreenAssets();
+void UnloadIntroScreenAssets();
+IntroAction DrawIntroScreen(const IntroPresentation& presentation);
 
 }  // namespace ultradope

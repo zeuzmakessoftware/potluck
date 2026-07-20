@@ -43,6 +43,11 @@ bool ValidProgression(const GameSession& session) {
     if (progression.hydroUnlocked && progression.chapter == ChapterId::OutdoorFoundations) {
         return false;
     }
+    if (progression.lastMorningDoorCutsceneDay < 0 ||
+        progression.lastMorningDoorCutsceneDay > session.calendar.day ||
+        (!progression.originCompleted && progression.lastMorningDoorCutsceneDay != 0)) {
+        return false;
+    }
     return true;
 }
 
@@ -100,7 +105,7 @@ bool ValidValues(const GameSession& candidate) {
 
 std::string SaveCodec::Encode(const GameSession& s) {
     std::ostringstream out;
-    out << "POTLUCK 1\n";
+    out << "POTLUCK 2\n";
     out << "META " << s.worldSeed << ' ' << s.calendar.day << ' ' << s.calendar.minuteOfDay
         << ' ' << EnumInt(s.calendar.weather) << '\n';
     out << "PLAYER " << s.player.position.x << ' ' << s.player.position.y << ' '
@@ -127,6 +132,7 @@ std::string SaveCodec::Encode(const GameSession& s) {
     out << "PROGRESSION " << EnumInt(p.era) << ' ' << EnumInt(p.chapter) << ' '
         << EnumInt(p.environment) << ' ' << p.originCompleted << ' ' << p.hydroUnlocked << ' '
         << p.hydroBriefingSeen << '\n';
+    out << "MORNING_CUTSCENE " << p.lastMorningDoorCutsceneDay << '\n';
     out << "HYDRO " << EnumInt(s.hydro.selectedEquipment) << ' ' << s.hydro.completed << ' '
         << s.hydro.completionAcknowledged;
     for (HydroEquipment equipment : s.hydro.equipment) out << ' ' << EnumInt(equipment);
@@ -141,7 +147,7 @@ bool SaveCodec::Decode(std::string_view text, GameSession& output, std::string& 
     std::istringstream input{std::string(text)};
     std::string magic;
     int version = 0;
-    if (!(input >> magic >> version) || magic != "POTLUCK" || version != 1) {
+    if (!(input >> magic >> version) || magic != "POTLUCK" || (version != 1 && version != 2)) {
         error = "Unsupported or malformed Potluck save header.";
         return false;
     }
@@ -158,6 +164,7 @@ bool SaveCodec::Decode(std::string_view text, GameSession& output, std::string& 
     bool foundShipment = false;
     bool foundQuest = false;
     bool foundProgression = false;
+    bool foundMorningCutscene = false;
     bool foundHydro = false;
     bool foundSummary = false;
     bool foundEnd = false;
@@ -248,6 +255,9 @@ bool SaveCodec::Decode(std::string_view text, GameSession& output, std::string& 
             progression.chapter = static_cast<ChapterId>(chapter);
             progression.environment = static_cast<EnvironmentId>(environment);
             foundProgression = true;
+        } else if (key == "MORNING_CUTSCENE") {
+            if (!(input >> candidate.progression.lastMorningDoorCutsceneDay)) break;
+            foundMorningCutscene = true;
         } else if (key == "HYDRO") {
             int selected = 0;
             if (!(input >> selected >> candidate.hydro.completed >>
@@ -282,10 +292,16 @@ bool SaveCodec::Decode(std::string_view text, GameSession& output, std::string& 
         }
     }
 
+    if (version == 1 && foundProgression) {
+        candidate.progression.lastMorningDoorCutsceneDay =
+            candidate.progression.originCompleted ? candidate.calendar.day : 0;
+    }
+
     const bool complete = foundMeta && foundPlayer && foundEconomy && foundSelection && foundWater &&
                           itemIndex == Inventory::kSlotCount &&
                           plotIndex == candidate.farm.plots.size() && foundShipment && foundQuest &&
-                          foundProgression && foundHydro && foundSummary && foundEnd;
+                          foundProgression && (version == 1 || foundMorningCutscene) && foundHydro &&
+                          foundSummary && foundEnd;
     if (!complete || !ValidValues(candidate)) {
         error = "Potluck save data is truncated or contains invalid values.";
         return false;
