@@ -103,6 +103,9 @@ int GameApp::Run() {
     if (!LoadIntroScreenAssets()) {
         TraceLog(LOG_WARNING, "Could not load all origin artwork; using procedural fallbacks.");
     }
+    if (!LoadWorldRendererAssets()) {
+        TraceLog(LOG_WARNING, "Could not create outdoor grass texture; using a flat-color fallback.");
+    }
     SetWindowMinSize(960, 540);
     SetExitKey(KEY_NULL);
     SetTargetFPS(60);
@@ -117,6 +120,7 @@ int GameApp::Run() {
     }
 
     EnableCursor();
+    UnloadWorldRendererAssets();
     UnloadIntroScreenAssets();
     UnloadTitleScreenAssets();
     ui::UnloadGameFont();

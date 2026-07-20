@@ -6,7 +6,9 @@ namespace ultradope::palette {
 
 // Dusty, high-contrast seventies palette.  The deliberately restricted gamut
 // helps the procedural geometry read like hand-authored PS2-era environment art.
-inline constexpr Color Grass{72, 91, 46, 255};
+inline constexpr Color Grass{76, 84, 45, 255};
+inline constexpr Color GrassFaded{94, 92, 49, 255};
+inline constexpr Color GrassDry{112, 89, 47, 255};
 inline constexpr Color GrassDark{42, 61, 34, 255};
 inline constexpr Color Soil{91, 55, 33, 255};
 inline constexpr Color WetSoil{47, 37, 28, 255};

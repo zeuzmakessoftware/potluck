@@ -6,11 +6,91 @@
 #include "render/PrimitiveDraw.hpp"
 #include "world/FarmLayout.hpp"
 
+#include <rlgl.h>
+
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace ultradope {
 namespace {
+constexpr int GrassTextureSize = 128;
+constexpr float GrassTextureRepeats = 7.0F;
+Texture2D grassTexture{};
+
+float HashValue(int x, int y, int seed) {
+    std::uint32_t value = static_cast<std::uint32_t>(x) * 374761393U;
+    value += static_cast<std::uint32_t>(y) * 668265263U;
+    value += static_cast<std::uint32_t>(seed) * 2246822519U;
+    value = (value ^ (value >> 13U)) * 1274126177U;
+    value ^= value >> 16U;
+    return static_cast<float>(value & 0x00FFFFFFU) / 16777215.0F;
+}
+
+float SmoothStep(float value) {
+    return value * value * (3.0F - 2.0F * value);
+}
+
+float PeriodicNoise(int x, int y, int cells, int seed) {
+    const float sampleX = static_cast<float>(x * cells) / static_cast<float>(GrassTextureSize);
+    const float sampleY = static_cast<float>(y * cells) / static_cast<float>(GrassTextureSize);
+    const int x0 = static_cast<int>(std::floor(sampleX));
+    const int y0 = static_cast<int>(std::floor(sampleY));
+    const int x1 = (x0 + 1) % cells;
+    const int y1 = (y0 + 1) % cells;
+    const float blendX = SmoothStep(sampleX - static_cast<float>(x0));
+    const float blendY = SmoothStep(sampleY - static_cast<float>(y0));
+    const float top = HashValue(x0, y0, seed) * (1.0F - blendX) +
+                      HashValue(x1, y0, seed) * blendX;
+    const float bottom = HashValue(x0, y1, seed) * (1.0F - blendX) +
+                         HashValue(x1, y1, seed) * blendX;
+    return top * (1.0F - blendY) + bottom * blendY;
+}
+
+Color BlendColor(Color from, Color to, float amount) {
+    amount = std::clamp(amount, 0.0F, 1.0F);
+    return Color{
+        static_cast<unsigned char>(static_cast<float>(from.r) +
+                                   static_cast<float>(to.r - from.r) * amount),
+        static_cast<unsigned char>(static_cast<float>(from.g) +
+                                   static_cast<float>(to.g - from.g) * amount),
+        static_cast<unsigned char>(static_cast<float>(from.b) +
+                                   static_cast<float>(to.b - from.b) * amount),
+        255};
+}
+
+Color GrassColor(float value) {
+    if (value < 0.32F) {
+        return BlendColor(palette::GrassDark, palette::Grass, value / 0.32F);
+    }
+    if (value < 0.72F) {
+        return BlendColor(palette::Grass, palette::GrassFaded, (value - 0.32F) / 0.40F);
+    }
+    return BlendColor(palette::GrassFaded, palette::GrassDry, (value - 0.72F) / 0.28F);
+}
+
+void DrawGrassPlane() {
+    if (grassTexture.id == 0) {
+        DrawPlane({0.0F, -0.02F, 0.0F}, {46.0F, 44.0F}, palette::Grass);
+        return;
+    }
+
+    rlSetTexture(grassTexture.id);
+    rlBegin(RL_QUADS);
+    rlColor4ub(255, 255, 255, 255);
+    rlNormal3f(0.0F, 1.0F, 0.0F);
+    rlTexCoord2f(0.0F, 0.0F);
+    rlVertex3f(-23.0F, -0.02F, -22.0F);
+    rlTexCoord2f(0.0F, GrassTextureRepeats);
+    rlVertex3f(-23.0F, -0.02F, 22.0F);
+    rlTexCoord2f(GrassTextureRepeats, GrassTextureRepeats);
+    rlVertex3f(23.0F, -0.02F, 22.0F);
+    rlTexCoord2f(GrassTextureRepeats, 0.0F);
+    rlVertex3f(23.0F, -0.02F, -22.0F);
+    rlEnd();
+    rlSetTexture(0);
+}
+
 void DrawPlots(const GameSession& session, int targetPlot) {
     for (std::size_t index = 0; index < session.farm.plots.size(); ++index) {
         const auto& plot = session.farm.plots[index];
@@ -65,16 +145,6 @@ void DrawDecorations() {
     }
 }
 
-void DrawGroundDetail() {
-    for (int i = 0; i < 42; ++i) {
-        const float x = -20.0F + static_cast<float>((i * 97) % 400) / 10.0F;
-        const float z = -19.0F + static_cast<float>((i * 53) % 380) / 10.0F;
-        const float size = 0.10F + static_cast<float>(i % 4) * 0.045F;
-        DrawCube({x, 0.025F, z}, size, 0.035F, size * 0.65F,
-                 i % 3 == 0 ? Color{121, 90, 49, 255} : Color{44, 57, 30, 255});
-    }
-}
-
 void DrawRain(float animationTime) {
     for (int i = 0; i < 90; ++i) {
         const float x = -22.0F + static_cast<float>((i * 37) % 440) / 10.0F;
@@ -84,6 +154,56 @@ void DrawRain(float animationTime) {
     }
 }
 }  // namespace
+
+bool LoadWorldRendererAssets() {
+    if (grassTexture.id != 0) return true;
+
+    Image image = GenImageColor(GrassTextureSize, GrassTextureSize, palette::Grass);
+    if (image.data == nullptr) return false;
+
+    auto* pixels = static_cast<Color*>(image.data);
+    for (int y = 0; y < GrassTextureSize; ++y) {
+        for (int x = 0; x < GrassTextureSize; ++x) {
+            const float broad = PeriodicNoise(x, y, 5, 17);
+            const float medium = PeriodicNoise(x, y, 11, 41);
+            const float grain = PeriodicNoise(x, y, 27, 83);
+            pixels[y * GrassTextureSize + x] =
+                GrassColor(broad * 0.56F + medium * 0.30F + grain * 0.14F);
+        }
+    }
+
+    // Short, softly blended flecks keep the surface grassy up close without
+    // turning the terrain into visible geometric tiles.
+    for (int i = 0; i < 260; ++i) {
+        const int startX = static_cast<int>(HashValue(i, 19, 101) * GrassTextureSize) %
+                           GrassTextureSize;
+        const int startY = static_cast<int>(HashValue(i, 47, 131) * GrassTextureSize) %
+                           GrassTextureSize;
+        const int length = 1 + i % 4;
+        const Color accent = i % 4 == 0 ? palette::GrassDry : palette::GrassDark;
+        for (int step = 0; step < length; ++step) {
+            const int x = (startX + step) % GrassTextureSize;
+            const int y = (startY + step / 3) % GrassTextureSize;
+            Color& pixel = pixels[y * GrassTextureSize + x];
+            pixel = BlendColor(pixel, accent, i % 4 == 0 ? 0.24F : 0.18F);
+        }
+    }
+
+    grassTexture = LoadTextureFromImage(image);
+    UnloadImage(image);
+    if (grassTexture.id == 0) return false;
+
+    GenTextureMipmaps(&grassTexture);
+    SetTextureFilter(grassTexture, TEXTURE_FILTER_TRILINEAR);
+    SetTextureWrap(grassTexture, TEXTURE_WRAP_REPEAT);
+    return true;
+}
+
+void UnloadWorldRendererAssets() {
+    if (grassTexture.id == 0) return;
+    UnloadTexture(grassTexture);
+    grassTexture = {};
+}
 
 Color SkyColorForTime(const GameSession& session) {
     const float hour = session.calendar.minuteOfDay / 60.0F;
@@ -95,11 +215,10 @@ Color SkyColorForTime(const GameSession& session) {
 
 void DrawOutdoorWorld(const GameSession& session, int targetPlot, float animationTime,
                       const PlayerRenderState& player, float doorOpenFraction) {
-    DrawPlane({0.0F, -0.02F, 0.0F}, {46.0F, 44.0F}, palette::Grass);
+    DrawGrassPlane();
     DrawCube({0.0F, 0.03F, 7.5F}, 3.0F, 0.08F, 8.0F, palette::Path);
     DrawCube({-7.0F, 0.03F, 8.0F}, 15.0F, 0.08F, 2.0F, palette::Path);
     DrawCube({8.0F, 0.03F, 7.0F}, 14.0F, 0.08F, 1.8F, palette::Path);
-    DrawGroundDetail();
     DrawFarmhouse(doorOpenFraction);
     DrawSeedKiosk();
     DrawShippingBin();
