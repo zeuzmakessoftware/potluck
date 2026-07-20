@@ -38,6 +38,83 @@ Vector2 TitlePoint(float x, float y) {
     return {layout.offsetX + x * layout.scale, layout.offsetY + y * layout.scale};
 }
 
+float SmoothStep(float value) {
+    value = std::clamp(value, 0.0F, 1.0F);
+    return value * value * (3.0F - 2.0F * value);
+}
+
+float Wrap01(float value) {
+    value = std::fmod(value, 1.0F);
+    return value < 0.0F ? value + 1.0F : value;
+}
+
+struct SmokeWispSpec {
+    float normalizedY;
+    float phase;
+    float speed;
+    float radiusScale;
+    float stretch;
+    float verticalCurl;
+    float opacity;
+    Color tint;
+};
+
+constexpr SmokeWispSpec kSmokeWisps[] = {
+    {0.18F, 0.44F, 0.0140F, 0.23F, 1.85F, 0.36F, 0.420F, Color{157, 153, 137, 255}},
+    {0.28F, 0.08F, 0.0120F, 0.21F, 1.55F, 0.36F, 0.400F, Color{149, 147, 131, 255}},
+    {0.43F, 0.58F, -0.0140F, 0.19F, 1.75F, 0.44F, 0.440F, Color{140, 142, 131, 255}},
+    {0.61F, 0.82F, 0.0110F, 0.22F, 1.45F, 0.32F, 0.390F, Color{153, 147, 128, 255}},
+    {0.34F, 0.31F, -0.0190F, 0.14F, 1.65F, 0.52F, 0.540F, Color{131, 138, 130, 255}},
+    {0.54F, 0.94F, 0.0230F, 0.15F, 1.85F, 0.48F, 0.590F, Color{138, 134, 120, 255}},
+    {0.70F, 0.05F, -0.0200F, 0.18F, 1.90F, 0.50F, 0.600F, Color{125, 131, 124, 255}},
+    {0.78F, 0.18F, -0.0270F, 0.13F, 1.70F, 0.62F, 0.660F, Color{121, 130, 125, 255}},
+    {0.89F, 0.67F, 0.0300F, 0.12F, 1.50F, 0.66F, 0.720F, Color{126, 125, 115, 255}},
+};
+
+void DrawSmokeWisp(const SmokeWispSpec& spec, float animationTime,
+                   float screenWidth, float screenHeight) {
+    constexpr int kLobeCount = 9;
+    constexpr float kTau = 6.28318530F;
+
+    const float radius = screenHeight * spec.radiusScale;
+    const float spacing = radius * spec.stretch * 0.31F;
+    const float extent = radius + spacing * static_cast<float>(kLobeCount / 2);
+    const float travel = Wrap01(spec.phase + animationTime * spec.speed);
+    const float centerX = -extent + travel * (screenWidth + extent * 2.0F);
+    const float wispPhase = animationTime * 0.20F + spec.phase * kTau;
+    const float centerY = screenHeight * spec.normalizedY +
+                          std::sin(wispPhase * 0.73F) * radius * spec.verticalCurl;
+
+    for (int i = 0; i < kLobeCount; ++i) {
+        const float lobe = static_cast<float>(i - kLobeCount / 2);
+        const float lobePhase = wispPhase + static_cast<float>(i) * 0.88F;
+        const float breathing = 0.88F + std::sin(lobePhase * 0.81F) * 0.10F;
+        const float puffRadius = radius * breathing * (1.0F - std::abs(lobe) * 0.035F);
+        const float puffX = centerX + lobe * spacing;
+        const float puffY = centerY + std::sin(lobePhase) * radius * spec.verticalCurl +
+                            lobe * lobe * radius * 0.025F;
+        const float opacity = spec.opacity * (0.86F + std::sin(lobePhase * 0.61F) * 0.14F);
+        DrawCircleGradient(static_cast<int>(puffX), static_cast<int>(puffY), puffRadius,
+                           ColorAlpha(spec.tint, opacity),
+                           Color{spec.tint.r, spec.tint.g, spec.tint.b, 0});
+        DrawCircleGradient(static_cast<int>(puffX),
+                           static_cast<int>(puffY - puffRadius * 0.08F), puffRadius * 0.62F,
+                           ColorAlpha(Color{180, 176, 158, 255}, opacity * 0.20F),
+                           Color{180, 176, 158, 0});
+    }
+}
+
+void DrawTitleSmoke(float animationTime, int screenWidth, int screenHeight) {
+    const float width = static_cast<float>(screenWidth);
+    const float height = static_cast<float>(screenHeight);
+    const int hazeY = static_cast<int>(height * 0.52F);
+    DrawRectangleGradientV(0, hazeY, screenWidth, screenHeight - hazeY,
+                           Color{128, 123, 105, 8}, Color{76, 79, 72, 78});
+    for (const SmokeWispSpec& wisp : kSmokeWisps) {
+        DrawSmokeWisp(wisp, animationTime, width, height);
+    }
+}
+
 void DrawBackgroundCover(float animationTime) {
     if (!titleBackgroundLoaded) {
         DrawRectangleGradientV(0, 0, GetScreenWidth(), GetScreenHeight(),
@@ -61,14 +138,15 @@ void DrawBackgroundCover(float animationTime) {
         baseSource.width = sourceWidth;
     }
 
-    // A little overscan lets the artwork drift without ever revealing its edges.
-    const float zoom = 1.028F + std::sin(animationTime * 0.52F) * 0.008F;
+    // Eased overscan creates a pronounced push-in while leaving room for a slow drift.
+    const float zoomPhase = SmoothStep((std::sin(animationTime * 0.44F) + 1.0F) * 0.5F);
+    const float zoom = 1.02F + zoomPhase * 0.065F;
     Rectangle source{baseSource.x, baseSource.y, baseSource.width / zoom,
                      baseSource.height / zoom};
     const float insetX = (baseSource.width - source.width) * 0.5F;
     const float insetY = (baseSource.height - source.height) * 0.5F;
-    source.x += insetX + std::sin(animationTime * 0.095F) * insetX * 0.72F;
-    source.y += insetY + std::sin(animationTime * 0.073F + 1.3F) * insetY * 0.58F;
+    source.x += insetX + std::sin(animationTime * 0.095F) * insetX * 0.42F;
+    source.y += insetY + std::sin(animationTime * 0.073F + 1.3F) * insetY * 0.34F;
     source.x = std::clamp(source.x, 0.0F,
                           static_cast<float>(titleBackground.width) - source.width);
     source.y = std::clamp(source.y, 0.0F,
@@ -208,6 +286,7 @@ void DrawTitleScreenBackdrop(float animationTime) {
     const unsigned char warmth = static_cast<unsigned char>(
         20 + static_cast<int>((std::sin(animationTime * 0.24F) + 1.0F) * 2.0F));
     DrawRectangle(0, 0, width, height, Color{84, 49, 7, warmth});
+    DrawTitleSmoke(animationTime, width, height);
     DrawRectangleGradientH(0, 0, width, height,
                            Color{5, 7, 2, 12}, Color{2, 3, 1, 58});
 
