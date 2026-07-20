@@ -75,6 +75,21 @@ void CenteredText(const char* text, Rectangle bounds, float size, Color color) {
          bounds.y + (bounds.height - measured.y) * 0.5F}, fontSize, 1.0F, color);
 }
 
+void CenteredTextFitted(const char* text, Rectangle bounds, float size,
+                        float horizontalPadding, Color color) {
+    const float scale = Scale();
+    float fontSize = size * scale;
+    const float availableWidth = std::max(0.0F, bounds.width - 2.0F * horizontalPadding * scale);
+    Vector2 measured = MeasureTextEx(GameFont(), text, fontSize, 1.0F);
+    if (measured.x > availableWidth && measured.x > 0.0F) {
+        fontSize *= availableWidth / measured.x;
+        measured = MeasureTextEx(GameFont(), text, fontSize, 1.0F);
+    }
+    DrawTextEx(GameFont(), text,
+        {bounds.x + (bounds.width - measured.x) * 0.5F,
+         bounds.y + (bounds.height - measured.y) * 0.5F}, fontSize, 1.0F, color);
+}
+
 bool Button(Rectangle bounds, const char* label, bool enabled) {
     const bool hovered = enabled && CheckCollisionPointRec(GetMousePosition(), bounds);
     const Color fill = !enabled ? Color{70, 75, 70, 210} :

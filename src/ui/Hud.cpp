@@ -31,8 +31,9 @@ const char* EquipmentName(HydroEquipment equipment) {
 
 void DrawToast(const std::string& toast, float toastTime) {
     if (toastTime <= 0.0F || toast.empty()) return;
-    ui::Panel(ui::Rect(340, 270, 600, 58), Color{36, 49, 42, 242});
-    ui::CenteredText(toast.c_str(), ui::Rect(340, 270, 600, 58), 19, palette::Cream);
+    const Rectangle bounds = ui::Rect(340, 270, 600, 58);
+    ui::Panel(bounds, Color{36, 49, 42, 242});
+    ui::CenteredTextFitted(toast.c_str(), bounds, 19, 16, palette::Cream);
 }
 }  // namespace
 
